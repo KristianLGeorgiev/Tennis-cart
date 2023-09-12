@@ -50,7 +50,9 @@ display = jetson_utils.videoOutput("display://0")
 # load the object detection network
 #net = detectNet(args.network, sys.argv, args.threshold)
 
+global key
 global center
+key = 0
 center = 0
 
 def movement(detections) -> int:
@@ -103,16 +105,20 @@ def movement(detections) -> int:
 
 	return
 
-def locate(detections):
+def locate(detections):#repair this
+	
+	time.sleep(5)
 	arduino.write(str(MOVEMENT_DIR_FWD).encode())
-	time.sleep(2)
+	time.sleep(1)
 	arduino.write(str(MOVEMENT_DIR_LS).encode())
-	time.sleep(2)
+	time.sleep(1)
+	arduino.write(str(MOVEMENT_STOP).encode())
 	return
 
-try:
-	with serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=None) as arduino:
+with serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=None) as arduino:
 
+	try:
+	
 		while display.IsStreaming():
 			
 			img = camera.Capture()
@@ -125,36 +131,23 @@ try:
 				arduino.write(str(dir).encode())
 
 			else:
-				dir = locate(detections)
+				#dir = locate(detections)
+				dir = MOVEMENT_STOP
 				arduino.write(str(dir).encode())
-				# capture the next image
-				
-				# detect objects in the image (with overlay)
-				
-
-				# print the detections
-				#print("detected {:d} objects in image".format(len(detections)))
-				
-
-				
-				#movementDir = movement(detections)
-
-				#arduino.write(str(movementDir).encode())
-				#print(f'Movement direction: {movementDir}')
-
-				
-
 				# update the title bar
-			display.SetStatus("Object | Network {:.0f} FPS".format (net.GetNetworkFPS()))
+			
+			display.SetStatus("ACBCC Detection | Network {:.0f} FPS".format (net.GetNetworkFPS()))
 
-				# print out performance info
-				#net.PrintProfilerTimes()
 
 					# exit on input/output EOS
-			if not camera.IsStreaming() or not display.IsStreaming():
+			if not camera.IsStreaming():
+				arduino.write(str(MOVEMENT_STOP).encode())
 				break
 
-except KeyboardInterrupt:
-	print("Exiting Program")
-	exit()
+	except KeyboardInterrupt:
+		arduino.write(str(MOVEMENT_STOP).encode())
+		print("Exiting Program")
+		arduino.close()
+		exit()
 
+	
